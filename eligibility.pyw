@@ -10,6 +10,7 @@ also needs oracledb: pip install oracledb --upgrade
 
 import base64
 import os
+import mimetypes
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 
@@ -30,6 +31,8 @@ print(f'DBUG: Database Username: {DB_UN} |Password: {DB_PW} |Server: {DB_CS}')  
 SCOPES = ['https://www.googleapis.com/auth/gmail.compose']
 
 SCHOOL_ID = 5
+TO_EMAIL = os.environ.get('PS_ELIGIBILITY_EMAILS')  # emails that it will be sent to, can be mutliple emails comma separated
+OUTPUT_FILE = 'whs_grades.csv'
 
 if __name__ == '__main__':
     with open('eligibility_log.txt', 'w') as log:
@@ -56,7 +59,7 @@ if __name__ == '__main__':
 
         service = build('gmail', 'v1', credentials=creds)  # create the Google API service with just gmail functionality
 
-        with open('whs_grades.csv', 'w') as output:
+        with open(OUTPUT_FILE, 'w') as output:
             print('Student Number,First Name,Last Name,Grade Level,Course Name,Term Name,Term Start,Term End,Grade Letter,Grade Percentage,Grade Points Earned,Grade Points Possible,Grade Last Updated', file=output)  # print header
             # create the connecton to the PowerSchool database
             with oracledb.connect(user=DB_UN, password=DB_PW, dsn=DB_CS) as con:
@@ -90,3 +93,36 @@ if __name__ == '__main__':
                         # else:
                         #     print(f'WARN: Found grade for student {stuNum} in course {course} for term {termName} that goes from {classStart} to {classEnd} that is not the current term, skipping')
                         #     print(f'WARN: Found grade for student {stuNum} in course {course} for term {termName} that goes from {classStart} to {classEnd} that is not the current term, skipping', file=log)
+        try:
+            print(f'INFO: Sending email to {TO_EMAIL} with .csv file of grades')
+            print(f'INFO: Sending email to {TO_EMAIL} with .csv file of grades', file=log)
+            mime_message = EmailMessage()  # create an email message object
+            # define headers
+            mime_message['To'] = TO_EMAIL  # who the email gets sent to
+            mime_message['Subject'] = f'WHS Grade Spreadsheet for Eligibility - {datetime.now().strftime('%m/%d/%Y')}'  # subject line of the email
+            mime_message.set_content('Attached you should find the .csv spreadsheet that contains the current grades for all WHS students. Please submit a ticket if there are issues or changes that need to be made.')  # body of the email
+
+            # add attachment of .csv output
+            attachment_filename = OUTPUT_FILE
+            # guessing the MIME type
+            type_subtype, _ = mimetypes.guess_type(attachment_filename)
+            maintype, subtype = type_subtype.split('/')
+
+            with open(attachment_filename, 'rb') as fp:
+                attachment_data = fp.read() # read the file data in and store it in the attachment_data
+            mime_message.add_attachment(attachment_data, maintype, subtype, filename=f'{datetime.now().strftime('%m/%d/%Y')}-{OUTPUT_FILE}') # add the attacment data to the message object, give it a filename that was our pdf file name
+
+            # encoded message
+            encoded_message = base64.urlsafe_b64encode(mime_message.as_bytes()).decode()
+            create_message = {'raw': encoded_message}
+            send_message = (service.users().messages().send(userId="me", body=create_message).execute())
+            print(f'DBUG: Email sent, message ID: {send_message["id"]}') # print out resulting message Id
+            print(f'DBUG: Email sent, message ID: {send_message["id"]}', file=log)
+        except HttpError as er:   # catch Google API http errors, get the specific message and reason from them for better logging
+            status = er.status_code
+            details = er.error_details[0]  # error_details returns a list with a dict inside of it, just strip it to the first dict
+            print(f'ERROR {status} from Google API while sending eligibility email to {TO_EMAIL}: {details["message"]}. Reason: {details["reason"]}')
+            print(f'ERROR {status} from Google API while sending eligibility email to {TO_EMAIL}: {details["message"]}. Reason: {details["reason"]}', file=log)
+        except Exception as er:
+            print(f'ERROR while sending eligibility email: {er}')
+            print(f'ERROR while sending eligibility email: {er}', file=log)
