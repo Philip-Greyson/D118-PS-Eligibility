@@ -11,7 +11,7 @@ also needs oracledb: pip install oracledb --upgrade
 import base64
 import os
 import mimetypes
-from datetime import datetime, timedelta
+from datetime import datetime
 from email.message import EmailMessage
 
 import oracledb  # needed for connection to PowerSchool server (oracle database)
@@ -164,17 +164,17 @@ if __name__ == '__main__':
                                                                 else:
                                                                     if not ineligibleStudents.get(stuNum, None):  # if they dont already exist in the dictionary
                                                                         ineligibleStudents.update({stuNum: failingClasses})  # add the student number
-                                                                        print(f'INFO: Student {stuNum} is INELIGIBLE, they are only passing {numCoursesPassing} classes. They are failing {failingClasses}')
-                                                                        print(f'INFO: Student {stuNum} is INELIGIBLE, they are only passing {numCoursesPassing} classes. They are failing {failingClasses}', file=log)
+                                                                        print(f'INFO: Student {stuNum} in {courseName} is INELIGIBLE, they are only passing {numCoursesPassing} classes. They are failing {failingClasses}')
+                                                                        print(f'INFO: Student {stuNum} in {courseName} is INELIGIBLE, they are only passing {numCoursesPassing} classes. They are failing {failingClasses}', file=log)
                                                                         if len(failingClasses) > 0:
-                                                                            print(f'\t•{stuNum} - {firstName} {lastName} is INELIGIBLE because they are only passing {numCoursesPassing} classes. They are currently failing:',file=output)
-                                                                            outputText += f'{stuNum} - {firstName} {lastName} is INELIGIBLE because they are only passing {numCoursesPassing} classes. They are currently failing:\n'  # add to the text that will be the body of the email
+                                                                            print(f'\t•{stuNum} - {firstName} {lastName} in {courseName} is INELIGIBLE because they are only passing {numCoursesPassing} classes. They are currently failing:',file=output)
+                                                                            outputText += f'{stuNum} - {firstName} {lastName} in {courseName} is INELIGIBLE because they are only passing {numCoursesPassing} classes. They are currently failing:\n'  # add to the text that will be the body of the email
                                                                             for failedClass in failingClasses:
                                                                                 print(f'\t\t•{failedClass}', file=output)
                                                                                 outputText += f'\t•{failedClass}\n'  # add to the text that will be the body of the email
                                                                         else:
-                                                                            print(f'\t•{stuNum} - {firstName} {lastName} is INELIGIBLE because they only have {numCoursesPassing} classes with grades. They are currently not failing any.', file=output)
-                                                                            outputText += f'{stuNum} - {firstName} {lastName} is INELIGIBLE because they only have {numCoursesPassing} classes with grades. They are currently not failing any.\n'  # add to the text that will be the body of the email
+                                                                            print(f'\t•{stuNum} - {firstName} {lastName} in {courseName} is INELIGIBLE because they only have {numCoursesPassing} classes with grades. They are currently not failing any.', file=output)
+                                                                            outputText += f'{stuNum} - {firstName} {lastName} in {courseName} is INELIGIBLE because they only have {numCoursesPassing} classes with grades. They are currently not failing any.\n'  # add to the text that will be the body of the email
                                                                     else:
                                                                         print(f'DBUG: Found duplicate student {stuNum} who is still ineligible')
                                                                         print(f'DBUG: Found duplicate student {stuNum} who is still ineligible', file=log)
@@ -196,8 +196,7 @@ if __name__ == '__main__':
                         except Exception as er:
                             print(f'ERROR while finding courses with ATH in their names: {er}')
                             print(f'ERROR while finding courses with ATH in their names: {er}', file=log)
-                    print(outputText)
-                    print(outputText, file=log)
+                    print(outputText)  # debug
         # should really put this inside the school and have different to emails, but right now only the high school cares so its fine      
         try:
             print(f'INFO: Sending email to {TO_EMAIL} with .csv file of grades')
