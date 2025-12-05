@@ -96,7 +96,7 @@ if __name__ == '__main__':
                             print(f'ERROR while finding current term in building {schoolCode}: {er}', file=log)
                         try:
                             # find all courses with ath (athletics) in the name
-                            cur.execute("SELECT c.course_number, c.course_name, c.dcid, ext.activity_start, ext.activity_end FROM courses c LEFT JOIN u_def_ext_courses ext ON c.dcid = ext.coursesdcid WHERE instr(c.course_name, 'ATH-') > 0 ")
+                            cur.execute("SELECT c.course_number, c.course_name, c.dcid, ext.activity_start, ext.activity_end FROM courses c LEFT JOIN u_def_ext_courses ext ON c.dcid = ext.coursesdcid WHERE (instr(c.course_name, 'ATH-') > 0 OR instr(c.course_name, 'ACT-') > 0)")
                             courses = cur.fetchall()
                             for course in courses:
                                 try:
